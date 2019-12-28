@@ -8,6 +8,8 @@
  *  
  */
 
+//  Resource used for testing: https://www.youtube.com/watch?v=hdH04Ucv9VM&feature=youtu.be
+
 const SHA256 = require('crypto-js/sha256');
 const BlockClass = require('./block.js');
 const bitcoinMessage = require('bitcoinjs-message');
@@ -128,8 +130,6 @@ class Blockchain {
                 } else {
                     reject('not verified');
                 }
-            } else {
-                reject('Time out')
             }
         });
     }
@@ -140,10 +140,11 @@ class Blockchain {
      * Search on the chain array for the block that has the hash.
      * @param {*} hash 
      */
+    // This code is similar to the getBlockByHeight method instead of height we use the hash.
     getBlockByHash(hash) {
         let self = this;
         return new Promise((resolve, reject) => {
-            let block = self.chain.filter(p => p.hash === hash)[0];
+            let block = self.chain.filter(h => h.hash === hash)[0];
             if (block) {
                 resolve(block);
             } else {
@@ -180,12 +181,14 @@ class Blockchain {
         let self = this;
         let stars = [];
         return new Promise((resolve, reject) => {
+            let chainLength = self.chain.length;
 
-            for (let i = 0; i < self.getChainHeight(); i++) {
-                let bodys = i.getBData();
-                if (bodys) {
-                    if (bodys.owner === address) {
-                        stars.push(bodys);
+            for (let i = 0; i < chainLength; i++) {
+
+                let bodysInfo = self.chain[i].getBData();
+                if (bodysInfo) {
+                    if (bodysInfo.owner === address) {
+                        stars.push(bodysInfo);
                     }
                 }
             }
