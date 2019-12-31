@@ -7,8 +7,8 @@
  *  isn't a persisten storage method.
  *  
  */
-
-//  Resource used for testing: https://www.youtube.com/watch?v=hdH04Ucv9VM&feature=youtu.be
+// Resource used to help when dealing with some issues: https://knowledge.udacity.com/questions/44628 & https://knowledge.udacity.com/questions/44638
+//  Resource used to help with testing: https://www.youtube.com/watch?v=hdH04Ucv9VM&feature=youtu.be
 
 const SHA256 = require('crypto-js/sha256');
 const BlockClass = require('./block.js');
@@ -67,17 +67,21 @@ class Blockchain {
      */
     _addBlock(block) {
         let self = this;
+        let count = 1;
         return new Promise(async(resolve, reject) => {
             let chainHeight = await self.getChainHeight();
             block.time = new Date().getTime().toString().slice(0, -3);
+
             if (chainHeight >= 0) {
 
                 block.previousBlockHash = self.chain[self.height].hash;
             }
-            block.height = chainHeight + 1;
+
+            block.height = chainHeight + count;
             block.hash = SHA256(JSON.stringify(block)).toString();
             self.chain.push(block);
-            self.height = self.chain.length - 1;
+            self.height++;
+
             resolve(block);
             reject('error adding block');
         });
@@ -119,17 +123,19 @@ class Blockchain {
         return new Promise(async(resolve, reject) => {
             let time = parseInt(message.split(':')[1]);
             let currentTime = parseInt(new Date().getTime().toString().slice(0, -3));
-            if ((time + (300000)) >= currentTime) {
+
+            if ((currentTime - time) < 300) { // 5 minutes is 300000miliseconds 
                 let verified = bitcoinMessage.verify(message, address, signature);
+
                 if (verified) {
                     let newBlock = self._addBlock(new BlockClass.Block({
-                        owner: address,
+                        addres: address,
                         star: star
                     }));
                     resolve(newBlock);
-                } else {
-                    reject('not verified');
                 }
+
+
             }
         });
     }
@@ -187,7 +193,7 @@ class Blockchain {
 
                 let bodysInfo = self.chain[i].getBData();
                 if (bodysInfo) {
-                    if (bodysInfo.owner === address) {
+                    if (bodysInfo.addres === address) {
                         stars.push(bodysInfo);
                     }
                 }
@@ -206,20 +212,27 @@ class Blockchain {
         let self = this;
         let errorLog = [];
         return new Promise(async(resolve, reject) => {
+            try {
+                for (let i = 0; i < self.height; i++) {
+                    if (await self.chainHeight[i].validate() != true) {
+                        errorLog.push(i);
+                    }
+                    let blockHash = self.chain[i].hash;
 
-            for (let i = 0; i < self.getChainHeight; i++) {
-                if (await block.validate() != true) {
-                    errorLog.push(i);
-                }
-                let block = await self.getBlockByHeight(i).hash;
-                let previousBlock = await self.getBlockByHeight(i + 1).previousBlockHash;
-                if (block !== previousBlock) {
-                    errorLog.push(i);
-                }
+                    if ((i + 1) == (self.height)) {
+                        let previousBlockHash = self.chain[i + 1].previousBlockHash;
+                        if (blockHash !== previousBlockHash) {
+                            errorLog.push(i);
+                        }
+                    }
 
+
+
+                }
+                resolve(errorLog);
+            } catch (error) {
 
             }
-            resolve(errorLog);
         });
     }
 
